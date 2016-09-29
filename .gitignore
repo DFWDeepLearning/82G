@@ -1,3 +1,4 @@
 picklejar
 venv
 __pycache__
+notMNIST_sets.pickle

@@ -18,7 +18,7 @@ model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accu
 #create training set
 import string
 
-data = pickle.load(open("notMNIST_sets.pickle","rb"))
+data = pickle.load(open("picklejar/train/notMNIST_sets.pickle","rb"))
 
 pretrainSet = [x[0] for x in data["train"][:100000]]
 pretrainLabels = [x[1] for x in data["train"][:100000]]
