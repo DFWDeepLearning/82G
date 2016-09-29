@@ -53,3 +53,4 @@ for x in range(0,10000):
 #trainDataFinal = trainData.reshape(100000,784)
 model.fit(trainSet, oneHotLabels, nb_epoch=20, batch_size = 250, verbose=1)
 print(model.test_on_batch(testSet, oneHotTest))
+model.save('trainedModel')
