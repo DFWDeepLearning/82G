@@ -1,70 +1,55 @@
-import matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.layers import Dense, Activation, Convolution2D
+import pickle
 import numpy as np
-import os
-import sys
-import tarfile
-from IPython.display import display, Image
-from scipy import ndimage
-from sklearn.linear_model import LogisticRegression
-from six.moves.urllib.request import urlretrieve
-from six.moves import cPickle as pickle
+from random import randint
 
-image_size = 28  # Pixel width and height.
-pixel_depth = 255.0  # Number of levels per pixel.
+model = Sequential()
+#model.add(Convolution2D(16,3, border_mode="same", input_shape=(28,28)))
+model.add(Dense(64,activation="relu", input_dim=784))
+model.add(Dense(16,activation='relu'))
+model.add(Dense(16,activation='relu'))
+model.add(Dense(16,activation='relu'))
+model.add(Dense(10))
+model.add(Activation('softmax'))
 
-def getSubfolders(folderName):
-	return (list(map(lambda x: "%s/%s"%(folderName,x),os.listdir(folderName)))) 
+model.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])
 
-train_folders = getSubfolders("notMNIST_large")
-test_folders = getSubfolders("notMNIST_small")
+#create training set
+import string
 
-def load_letter(folder, min_num_images):
-  #Load the data for a single letter label.
-  image_files = os.listdir(folder)
-  dataset = np.ndarray(shape=(len(image_files), image_size, image_size),
-                         dtype=np.float32)
-  print(folder)
-  num_images = 0
-  for image in image_files:
-    image_file = os.path.join(folder, image)
-    try:
-      image_data = (ndimage.imread(image_file).astype(float) - 
-                    pixel_depth / 2) / pixel_depth
-      if image_data.shape != (image_size, image_size):
-        raise Exception('Unexpected image shape: %s' % str(image_data.shape))
-      dataset[num_images, :, :] = image_data
-      num_images = num_images + 1
-    except IOError as e:
-      print('Could not read:', image_file, ':', e, '- it\'s ok, skipping.')
-    
-  dataset = dataset[0:num_images, :, :]
-  if num_images < min_num_images:
-    raise Exception('Many fewer images than expected: %d < %d' %
-                    (num_images, min_num_images))
-    
-  print('Full dataset tensor:', dataset.shape)
-  print('Mean:', np.mean(dataset))
-  print('Standard deviation:', np.std(dataset))
-  return dataset
-        
-def maybe_pickle(data_folders, min_num_images_per_class, force=False):
-  dataset_names = []
-  for folder in data_folders:
-    set_filename = folder + '.pickle'
-    dataset_names.append(set_filename)
-    if os.path.exists(set_filename) and not force:
-      # You may override by setting force=True.
-      print('%s already present - Skipping pickling.' % set_filename)
-    else:
-      print('Pickling %s.' % set_filename)
-      dataset = load_letter(folder, min_num_images_per_class)
-      try:
-        with open(set_filename, 'wb') as f:
-          pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
-      except Exception as e:
-        print('Unable to save data to', set_filename, ':', e)
-  
-  return dataset_names
+data = pickle.load(open("notMNIST_sets.pickle","rb"))
 
-#train_datasets = maybe_pickle(train_folders, 45000)
-test_datasets = maybe_pickle(test_folders, 1800)
+pretrainSet = [x[0] for x in data["train"][:100000]]
+pretrainLabels = [x[1] for x in data["train"][:100000]]
+trainSet = np.ndarray(shape=(100000,784),dtype=np.float32)
+trainLabels = np.ndarray(shape=(100000,10),dtype=np.float32)
+
+ab = ['A','B','C','D','E','F','G','H','I','J']
+oneHotLabels = [[(1 if ab[x] == y else 0) for x in range(0, len(ab))] for y in pretrainLabels]
+
+pretestSet = [x[0] for x in data["test"]][:10000]
+pretestLabels = [x[1] for x in data["test"]][:10000]
+testSet = np.ndarray(shape=(10000,784),dtype=np.float32)
+testLabels = np.ndarray(shape=(10000,10),dtype=np.float32)
+
+oneHotTest = [[(1 if ab[x] == y else 0) for x in range(0, len(ab))] for y in pretestLabels]
+
+for x in range(0,100000):
+	trainSet[x] = pretrainSet[x].flatten()
+	trainLabels = oneHotLabels[x]
+
+for x in range(0,10000):
+	testSet[x] = pretestSet[x].flatten()
+
+
+#labeledTrain = list(zip(trainData,trainLabels))
+#shuffled = [labeledTrain[randint(0,99999)] for x in range(0,50000)]
+
+
+#trainData,trainLabels = zip(*labeledTrain)
+#trainData = list(trainData)
+
+#trainDataFinal = trainData.reshape(100000,784)
+model.fit(trainSet, oneHotLabels, nb_epoch=20, batch_size = 250, verbose=1)
+print(model.test_on_batch(testSet, oneHotTest))
